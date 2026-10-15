@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Riser Sidekick</title>
+<style>
+:root{--bg:#0D0E1F;--panel:#15172E;--panel-2:#1C1F3B;--line:#2B2F55;--ink:#EEF0FF;--muted:#A0A4CF;--faint:#6E73A3;
+  --cyan:#22E3F0;--magenta:#FF3D9A;--coral:#FF7A45;--good:#3BE38C;--warn:#FFC23D;--bad:#FF4D7A;color-scheme:dark}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,"Segoe UI",system-ui,sans-serif;display:flex;flex-direction:column;
+  padding:env(safe-area-inset-top,0) max(12px,env(safe-area-inset-right,0)) env(safe-area-inset-bottom,0) max(12px,env(safe-area-inset-left,0))}
+header{display:flex;align-items:center;gap:10px;padding:10px 0}
+.logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#22E3F0,#FF3D9A 55%,#FFC23D);display:grid;place-items:center;flex:none}
+header h1{font-size:16px;margin:0;font-weight:700}header .sub{font-size:12px;color:var(--muted)}
+.spacer{flex:1}
+.pill{font:600 11px/1 ui-monospace,monospace;border:1px solid var(--line);border-radius:999px;padding:6px 9px;color:var(--muted);white-space:nowrap}
+.pill.on{color:var(--good);border-color:var(--good)}
+main{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+h2{font-size:15px;margin:0}
+p{margin:0;color:var(--muted);font-size:13.5px}
+label{font-size:12px;color:var(--muted);font-weight:600}
+input,select{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 12px;color:var(--ink);font:inherit}
+input.code{font:600 28px/1 ui-monospace,monospace;letter-spacing:.3em;text-align:center}
+.btn{border:0;border-radius:12px;padding:13px 16px;font-weight:700;font-size:15px;cursor:pointer;background:var(--ink);color:var(--bg)}
+.btn.grad{background:linear-gradient(135deg,var(--magenta),var(--coral));color:#fff}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.btn.big{padding:18px;font-size:17px;border-radius:16px}
+.btn:disabled{opacity:.5}
+.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}
+.err{color:var(--bad);font-size:13px}.ok{color:var(--good);font-size:13px}
+.stage{position:relative;flex:1;min-height:0;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;touch-action:none}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hint{position:absolute;left:50%;top:10px;transform:translateX(-50%);background:var(--ink);color:var(--bg);font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px;white-space:nowrap;pointer-events:none;max-width:92%;overflow:hidden;text-overflow:ellipsis}
+.readout{position:absolute;left:10px;right:10px;bottom:10px;background:rgba(21,23,46,.92);border:1px solid var(--line);border-radius:12px;padding:8px 10px;font:12.5px ui-monospace,monospace;color:var(--muted)}
+.readout b{color:var(--ink)}
+.bar{display:flex;gap:8px;align-items:stretch}
+.stat{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;min-width:0}
+.stat .k{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:700}
+.stat .v{font:600 18px/1.2 ui-monospace,monospace;white-space:nowrap}
+.stat .s{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list{display:flex;flex-direction:column;gap:6px;max-height:34vh;overflow:auto}
+.ap{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:10px}
+.ap .m{font:600 12px ui-monospace,monospace}.ap .b{font-size:11px;color:var(--muted)}
+.ap .r{font:600 14px ui-monospace,monospace;text-align:right}
+[hidden]{display:none!important}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:700;font-size:14px;z-index:9}
+.pulse{animation:pulse 1s infinite}@keyframes pulse{50%{opacity:.5}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><svg width="20" height="20" viewBox="0 0 34 34"><path d="M8 15a13 13 0 0 1 18 0M11.5 18.5a8 8 0 0 1 11 0M15 22a3 3 0 0 1 4 0" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/><circle cx="17" cy="25.5" r="1.8" fill="#fff"/></svg></div>
+  <div><h1>Riser Sidekick</h1><div class="sub" id="sub">Starting…</div></div>
+  <div class="spacer"></div>
+  <span class="pill" id="pillRadio">radios</span>
+  <span class="pill" id="pillNet">offline</span>
+</header>
+<main>
+  <!-- pairing -->
+  <section class="card" id="vPair" hidden>
+    <h2>Pair with Airwave</h2>
+    <p>In Airwave, open a floor → Inspect → Riser Sidekick → <b>Pair a Sidekick</b>, then type the 6-digit code here. The box needs internet for this step (Ethernet, or client mode below).</p>
+    <input class="code" id="code" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code">
+    <button class="btn grad" id="btnPair">Pair</button>
+    <div class="err" id="pairErr"></div>
+    <details><summary style="color:var(--muted);font-size:13px">Join office WiFi for internet (client mode)</summary>
+      <div class="row" style="margin-top:8px"><input id="ssid" placeholder="WiFi name"><input id="pw" type="password" placeholder="Password"></div>
+      <div class="row" style="margin-top:8px"><button class="btn ghost" id="btnClient">Connect</button><button class="btn ghost" id="btnHotspot">Back to hotspot</button></div>
+      <p style="margin-top:6px">Your phone will drop off the Sidekick hotspot; reconnect through <b>riser-sidekick.local</b> on the same office WiFi.</p>
+    </details>
+  </section>
+
+  <!-- floor picker -->
+  <section class="card" id="vPick" hidden>
+    <h2>Choose a floor</h2>
+    <select id="floorSel"></select>
+    <div class="row"><button class="btn grad" id="btnStart">Start survey</button><button class="btn ghost" id="btnRefresh">Refresh floors</button></div>
+    <div class="row"><button class="btn ghost" id="btnSync">Sync points now</button></div>
+    <p id="pickMsg"></p>
+  </section>
+
+  <!-- survey -->
+  <div id="vSurvey" hidden style="display:contents">
+    <div class="stage" id="stage">
+      <canvas id="cv"></canvas>
+      <div class="hint" id="hint">Tap where you are standing</div>
+      <div class="readout" id="readout">No point yet</div>
+    </div>
+    <div class="bar">
+      <div class="stat"><div class="k">Points</div><div class="v" id="sPts">0</div><div class="s" id="sPend">0 pending</div></div>
+      <div class="stat"><div class="k">Best 5 GHz</div><div class="v" id="s5">–</div><div class="s" id="s5n"></div></div>
+      <div class="stat"><div class="k">Best 2.4</div><div class="v" id="s24">–</div><div class="s" id="s6" style="color:var(--muted)"></div></div>
+    </div>
+    <button class="btn grad big" id="btnRecord" disabled>Record here</button>
+    <div class="row"><button class="btn ghost" id="btnUndo">Undo last</button><button class="btn ghost" id="btnAps">Nearby APs</button><button class="btn ghost" id="btnDone">Done</button></div>
+    <section class="card" id="vAps" hidden><div class="list" id="apList"></div></section>
+  </div>
+</main>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const api = async (path, opts={}) => { const r = await fetch(path, { headers:{'content-type':'application/json'}, ...opts }); const d = await r.json().catch(()=>({})); if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`); return d; };
+let toastT; const toast = t => { const el=$('#toast'); el.textContent=t; el.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>el.hidden=true,2500); };
+const dbm = v => v==null ? '–' : `${Math.round(v)} dBm`;
+
+let status = {}, floors = [], floor = null, points = [], sessionId = null, pending = null, img = null;
+
+async function refreshStatus(){
+  try { status = await api('/api/status'); } catch { status = {}; }
+  $('#sub').textContent = status.paired ? `${status.org_name || 'Paired'} · ${status.firmware||''}` : 'Not paired';
+  $('#pillRadio').textContent = `${(status.radios||[]).length} radio${(status.radios||[]).length===1?'':'s'}`;
+  $('#pillRadio').className = 'pill' + ((status.radios||[]).length ? ' on' : '');
+  $('#pillNet').textContent = status.online ? 'online' : 'offline';
+  $('#pillNet').className = 'pill' + (status.online ? ' on' : '');
+  $('#sPend').textContent = `${status.pending||0} pending`;
+}
+function show(view){ ['vPair','vPick','vSurvey'].forEach(v => $('#'+v).hidden = v!==view); }
+
+async function boot(){
+  await refreshStatus();
+  if (!status.paired) { show('vPair'); return; }
+  await loadFloors(); show('vPick');
+}
+async function loadFloors(){
+  const d = await api('/api/floors'); floors = d.floors || [];
+  const sites = Object.fromEntries((d.sites||[]).map(s=>[s.id,s.name]));
+  $('#floorSel').innerHTML = floors.length ? floors.map(f=>`<option value="${f.id}">${sites[f.site_id]||'Site'} · ${f.name} (${f.width_m}×${f.height_m} m)</option>`).join('') : '<option value="">No floors. Tap Refresh floors while online.</option>';
+}
+
+$('#btnPair').onclick = async () => { $('#pairErr').textContent=''; try { const d = await api('/api/pair',{method:'POST',body:JSON.stringify({code:$('#code').value.trim()})}); toast(`Paired with ${d.org_name||'Airwave'}`); await boot(); } catch(e){ $('#pairErr').textContent = e.message; } };
+$('#btnClient').onclick = async () => { try { const d = await api('/api/network',{method:'POST',body:JSON.stringify({mode:'client',ssid:$('#ssid').value,password:$('#pw').value})}); toast(d.ok?'Connecting… reopen riser-sidekick.local':'Failed: '+d.output); } catch(e){ toast(e.message); } };
+$('#btnHotspot').onclick = async () => { try { await api('/api/network',{method:'POST',body:JSON.stringify({mode:'hotspot'})}); toast('Hotspot restored'); } catch(e){ toast(e.message); } };
+$('#btnRefresh').onclick = async () => { $('#pickMsg').textContent='Refreshing…'; try { const d = await api('/api/refresh',{method:'POST'}); await loadFloors(); $('#pickMsg').textContent=`${d.floors} floors loaded.`; } catch(e){ $('#pickMsg').textContent=e.message; } };
+$('#btnSync').onclick = async () => { $('#pickMsg').textContent='Syncing…'; try { const d = await api('/api/sync',{method:'POST'}); $('#pickMsg').textContent=`Sent ${d.sent} points. ${d.pending} pending.`; await refreshStatus(); } catch(e){ $('#pickMsg').textContent=e.message; } };
+$('#btnStart').onclick = async () => {
+  floor = floors.find(f=>f.id===$('#floorSel').value); if (!floor) return;
+  sessionId = crypto.randomUUID(); pending = null; img = null;
+  points = (await api(`/api/floors/${floor.id}/points`)).points || [];
+  if (floor.has_plan_image) { img = new Image(); img.onload = draw; img.src = `/api/floors/${floor.id}/plan`; }
+  show('vSurvey'); resize(); updateStats();
+};
+$('#btnDone').onclick = async () => { show('vPick'); await refreshStatus(); if (status.online) $('#btnSync').click(); };
+$('#btnAps').onclick = () => { $('#vAps').hidden = !$('#vAps').hidden; };
+$('#btnUndo').onclick = async () => { const last = points[points.length-1]; if (!last) return; await api(`/api/points/${last.id}`,{method:'DELETE'}); points.pop(); updateStats(); draw(); toast('Point removed'); };
+
+/* ---- canvas ---- */
+const cv = $('#cv'), ctx = cv.getContext('2d'); let view = {s:1,ox:0,oy:0}, cw=0, ch=0;
+function resize(){ const r = $('#stage').getBoundingClientRect(); const dpr = Math.min(2, devicePixelRatio||1); cw=r.width; ch=r.height; cv.width=Math.round(cw*dpr); cv.height=Math.round(ch*dpr); ctx.setTransform(dpr,0,0,dpr,0,0);
+  if (floor){ const pad=16, padT=44, padB=60; view.s = Math.max(0.5, Math.min((cw-2*pad)/floor.width_m, (ch-padT-padB)/floor.height_m)); view.ox=(cw-floor.width_m*view.s)/2; view.oy=padT+((ch-padT-padB)-floor.height_m*view.s)/2; } draw(); }
+new ResizeObserver(resize).observe($('#stage'));
+const sx = x => view.ox + x*view.s, sy = y => view.oy + y*view.s;
+const MAT = {drywall:'#8A90C4',glass:'#38CFE8',wood:'#C98B4F',brick:'#E0703F',concrete:'#7E84A6',metal:'#FF4FA3'};
+function colorFor(v){ if (v==null) return '#6E73A3'; if (v>=-55) return '#4BE36A'; if (v>=-65) return '#C9F23A'; if (v>=-70) return '#FFD23F'; if (v>=-75) return '#FF8A3D'; if (v>=-80) return '#FF3D7F'; return '#9B4DFF'; }
+function best(p, band){ let b=null; for (const r of p.readings||[]) if (r.band===band && (b==null||r.rssi>b)) b=r.rssi; return b; }
+function draw(){
+  if (!floor || !cw) return; const s=view.s;
+  ctx.clearRect(0,0,cw,ch); ctx.fillStyle='#101228'; ctx.fillRect(sx(0),sy(0),floor.width_m*s,floor.height_m*s);
+  if (img && img.complete && img.naturalWidth){ ctx.globalAlpha=.6; ctx.drawImage(img,sx(0),sy(0),floor.width_m*s,floor.height_m*s); ctx.globalAlpha=1; }
+  ctx.strokeStyle='#1E2145'; ctx.lineWidth=1; ctx.beginPath(); for (let x=5;x<floor.width_m;x+=5){ctx.moveTo(sx(x),sy(0));ctx.lineTo(sx(x),sy(floor.height_m));} for (let y=5;y<floor.height_m;y+=5){ctx.moveTo(sx(0),sy(y));ctx.lineTo(sx(floor.width_m),sy(y));} ctx.stroke();
+  ctx.lineCap='round'; for (const w of (floor.geometry?.walls||[])){ ctx.strokeStyle=MAT[w.mat]||'#8A90C4'; ctx.lineWidth=w.mat==='concrete'?4:w.mat==='metal'?3.5:2.5; ctx.beginPath(); ctx.moveTo(sx(w.x1),sy(w.y1)); ctx.lineTo(sx(w.x2),sy(w.y2)); ctx.stroke(); }
+  if (s>=6){ ctx.fillStyle='#8086BC'; ctx.font='600 10px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; for (const l of (floor.geometry?.labels||[])) ctx.fillText((l.text||'').toUpperCase(), sx(l.x), sy(l.y)); }
+  for (const p of points){ const v = best(p,'5'); ctx.beginPath(); ctx.arc(sx(p.x),sy(p.y),7,0,Math.PI*2); ctx.fillStyle=colorFor(v); ctx.fill(); ctx.lineWidth=1.5; ctx.strokeStyle=p.synced?'#fff':'#0D0E1F'; ctx.stroke(); }
+  if (pending){ ctx.beginPath(); ctx.arc(sx(pending.x),sy(pending.y),11,0,Math.PI*2); ctx.strokeStyle='#22E3F0'; ctx.lineWidth=3; ctx.stroke(); ctx.beginPath(); ctx.arc(sx(pending.x),sy(pending.y),3,0,Math.PI*2); ctx.fillStyle='#22E3F0'; ctx.fill(); }
+  const m = s>20?2:5, bx=cw-16-m*s, by=ch-14; ctx.strokeStyle='#EEF0FF'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(bx,by-4); ctx.lineTo(bx,by); ctx.lineTo(bx+m*s,by); ctx.lineTo(bx+m*s,by-4); ctx.stroke(); ctx.fillStyle='#EEF0FF'; ctx.font='600 10px ui-monospace,monospace'; ctx.textAlign='center'; ctx.fillText(m+' m', bx+m*s/2, by-9);
+}
+$('#stage').addEventListener('pointerdown', e => { if (!floor) return; const r = cv.getBoundingClientRect(); const x=(e.clientX-r.left-view.ox)/view.s, y=(e.clientY-r.top-view.oy)/view.s; if (x<0||y<0||x>floor.width_m||y>floor.height_m) return; pending={x:Math.round(x*10)/10,y:Math.round(y*10)/10}; $('#btnRecord').disabled=false; $('#hint').textContent=`Standing at ${pending.x}, ${pending.y} m · tap Record`; draw(); });
+
+let recording=false;
+$('#btnRecord').onclick = async () => {
+  if (!pending || recording) return; recording=true; const btn=$('#btnRecord'); btn.textContent='Scanning…'; btn.classList.add('pulse'); btn.disabled=true;
+  try { const p = await api('/api/points',{method:'POST',body:JSON.stringify({floor_id:floor.id,session_id:sessionId,x:pending.x,y:pending.y})}); points.push(p); showReadings(p); pending=null; $('#hint').textContent='Saved. Walk 3–5 m and tap again'; }
+  catch(e){ toast(e.message); }
+  recording=false; btn.textContent='Record here'; btn.classList.remove('pulse'); btn.disabled=!pending; updateStats(); draw();
+};
+function showReadings(p){
+  const b5=best(p,'5'), b24=best(p,'2.4'), b6=best(p,'6');
+  const top5 = (p.readings||[]).filter(r=>r.band==='5').sort((a,b)=>b.rssi-a.rssi)[0];
+  $('#s5').textContent=dbm(b5); $('#s5n').textContent = top5 ? `${top5.ssid||top5.bssid} ch ${top5.channel}` : 'nothing heard';
+  $('#s24').textContent=dbm(b24); $('#s6').textContent = b6==null ? '' : `6 GHz ${dbm(b6)}`;
+  $('#readout').innerHTML = `<b>${(p.readings||[]).length} networks</b> heard at ${p.x}, ${p.y} m`;
+  $('#apList').innerHTML = (p.readings||[]).slice(0,40).map(r=>`<div class="ap"><div><div class="m">${r.ssid||'(hidden)'}</div><div class="b">${r.bssid} · ${r.band} GHz ch ${r.channel} · ${r.width_mhz} MHz</div></div><div class="r" style="color:${colorFor(r.rssi)}">${Math.round(r.rssi)}</div></div>`).join('') || '<p>No networks heard.</p>';
+}
+function updateStats(){ $('#sPts').textContent = points.length; $('#sPend').textContent = `${points.filter(p=>!p.synced).length} pending`; }
+
+boot(); setInterval(refreshStatus, 20000);
+</script>
+</body>
+</html>

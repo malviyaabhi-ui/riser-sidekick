@@ -1,0 +1,16 @@
+[Unit]
+Description=Riser Sidekick survey service
+After=network-online.target NetworkManager.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/riser-sidekick
+ExecStart=/opt/riser-sidekick/venv/bin/python -m sidekickd
+Restart=always
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
