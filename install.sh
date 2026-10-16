@@ -2,6 +2,7 @@
 # Riser Sidekick installer for Raspberry Pi OS (Bookworm or newer, 64-bit).
 # Run once as root on a fresh Pi:  sudo bash install.sh
 set -euo pipefail
+trap 'echo; echo "ERROR: install.sh failed at line $LINENO: $BASH_COMMAND" >&2' ERR
 
 APP=/opt/riser-sidekick
 COUNTRY="${SIDEKICK_COUNTRY:-AE}"
@@ -31,7 +32,8 @@ hostnamectl set-hostname riser-sidekick
 sed -i 's/^127.0.1.1.*/127.0.1.1\triser-sidekick/' /etc/hosts || true
 
 echo "== Hotspot on the built-in radio (wlan0)"
-SSID="Riser-Sidekick-$(tr -dc 'A-Z0-9' </dev/urandom | head -c4)"
+# (python, not tr|head: head closing the pipe trips pipefail and silently aborts the script)
+SSID="Riser-Sidekick-$(python3 -c "import secrets,string;print(''.join(secrets.choice(string.ascii_uppercase+string.digits) for _ in range(4)))")"
 if ! nmcli -t -f NAME con show | grep -q '^Sidekick-Hotspot$'; then
   nmcli con add type wifi ifname wlan0 con-name Sidekick-Hotspot autoconnect yes ssid "${SSID}" \
     802-11-wireless.mode ap 802-11-wireless.band bg ipv4.method shared ipv6.method disabled \
