@@ -107,11 +107,13 @@ def parse_scan(text: str) -> list[Reading]:
 
 
 async def scan_iface(iface: str, freqs: list[int] | None = None) -> list[Reading]:
-    cmd = ["iw", "dev", iface, "scan", "passive"]
+    # iw grammar: scan [freq <f>*] ... [passive]  — "passive" must come last
+    cmd = ["iw", "dev", iface, "scan"]
     if freqs:
         cmd += ["freq", *map(str, freqs)]
+    cmd.append("passive")
     for attempt in range(3):
-        rc, out = await _run(*cmd, timeout=25)
+        rc, out = await _run(*cmd, timeout=40)
         if rc == 0:
             return parse_scan(out)
         if "Device or resource busy" in out or rc == 240:
@@ -145,7 +147,9 @@ class Scanner:
         ifs = self.interfaces
         if len(ifs) >= 2:
             five = [5000 + 5 * c for c in (36, 40, 44, 48, 52, 56, 60, 64, 100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144, 149, 153, 157, 161, 165)]
-            return [(ifs[0], five), (ifs[1], None)]
+            two = [2412 + 5 * i for i in range(13)]                 # ch 1-13
+            six = [5955 + 20 * i for i in range(59)]                # 6 GHz 20 MHz centres, ch 1-233
+            return [(ifs[0], five), (ifs[1], two + six)]
         return [(i, None) for i in ifs]
 
     async def scan(self) -> list[dict]:
