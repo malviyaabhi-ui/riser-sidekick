@@ -93,12 +93,21 @@ def parse_scan(text: str) -> list[Reading]:
         if not band:
             continue
         width = 20
-        if re.search(r"\* channel width: 1 \(40 MHz\)", b):
+        # HT operation: secondary channel present → 40 MHz (2.4 or 5 GHz)
+        if re.search(r"^\s*\* secondary channel offset: (above|below)", b, re.M):
             width = 40
-        if re.search(r"\* channel width: [23] \(80", b) or "80 MHz" in b:
-            width = 80
-        if "160 MHz" in b:
-            width = 160
+        # VHT operation (5 GHz): channel width 1 = 80/160, 2 = 160, 3 = 80+80
+        vht = re.search(r"VHT operation:.*?\* channel width: (\d)", b, re.S)
+        if vht and band != "2.4":
+            width = {"1": 80, "2": 160, "3": 160}.get(vht.group(1), width)
+            if vht.group(1) == "1" and re.search(r"center freq segment 2: [1-9]", b):
+                width = 160
+        # HE/EHT operation (6 GHz): channel width field in MHz
+        he = re.search(r"(?:HE|EHT) operation:.*?\* channel width: (\d+)\s*MHz", b, re.S | re.I)
+        if he and band == "6":
+            width = int(he.group(1))
+        if band == "2.4":
+            width = min(width, 40)
         readings.append(Reading(
             bssid=bssid, ssid=(ssid_m.group(1).strip() if ssid_m else ""), band=band,
             channel=channel_for_freq(freq), width_mhz=width, rssi=float(sig_m.group(1)), freq=freq,
