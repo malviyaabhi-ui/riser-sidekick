@@ -64,7 +64,8 @@ fi
 echo "== Service"
 cp "${SRC}/system/riser-sidekick.service" /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable --now riser-sidekick
+systemctl enable riser-sidekick >/dev/null 2>&1
+systemctl restart riser-sidekick
 
 echo
 echo "Done. Hotspot: ${SSID}  password: ${HOTSPOT_PW}"
