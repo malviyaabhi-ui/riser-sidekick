@@ -36,12 +36,19 @@ echo "== Hotspot on the built-in radio (wlan0)"
 SSID="Riser-Sidekick-$(python3 -c "import secrets,string;print(''.join(secrets.choice(string.ascii_uppercase+string.digits) for _ in range(4)))")"
 if ! nmcli -t -f NAME con show | grep -q '^Sidekick-Hotspot$'; then
   nmcli con add type wifi ifname wlan0 con-name Sidekick-Hotspot autoconnect yes ssid "${SSID}" \
-    802-11-wireless.mode ap 802-11-wireless.band bg ipv4.method shared ipv6.method disabled \
+    802-11-wireless.mode ap 802-11-wireless.band a 802-11-wireless.channel 36 ipv4.method shared ipv6.method disabled \
     wifi-sec.key-mgmt wpa-psk wifi-sec.psk "${HOTSPOT_PW}" >/dev/null
   nmcli con modify Sidekick-Hotspot connection.autoconnect-priority 10
 else
   SSID="$(nmcli -g 802-11-wireless.ssid con show Sidekick-Hotspot)"
+  # 5 GHz keeps the hotspot clear of USB 3.0 noise from the survey dongles (2.4 GHz)
+  nmcli con modify Sidekick-Hotspot 802-11-wireless.band a 802-11-wireless.channel 36 || true
 fi
+# Built-in radio: never power-save (drops SSH/hotspot clients otherwise)
+cat > /etc/NetworkManager/conf.d/91-riser-wifi-powersave.conf <<'CONF'
+[connection]
+wifi.powersave = 2
+CONF
 # Keep the scan radios out of NetworkManager's hands.
 cat > /etc/NetworkManager/conf.d/90-riser-sidekick.conf <<'CONF'
 [keyfile]
