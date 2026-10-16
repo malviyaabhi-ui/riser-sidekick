@@ -125,23 +125,28 @@ async def scan_iface(iface: str, freqs: list[int] | None = None) -> list[Reading
 class Scanner:
     def __init__(self, interfaces: list[str] | None, country: str):
         self.country = country
-        self.interfaces = interfaces or find_radios()
+        self._fixed = interfaces
         self._lock = asyncio.Lock()
-        self._prepared = False
+        self._prepared: set[str] = set()
+
+    @property
+    def interfaces(self) -> list[str]:
+        """Radios present right now; USB dongles can be plugged in after the service starts."""
+        return self._fixed or find_radios()
 
     async def _prepare_all(self) -> None:
-        if self._prepared:
-            return
         for i in self.interfaces:
-            await prepare(i, self.country)
-        self._prepared = True
+            if i not in self._prepared:
+                await prepare(i, self.country)
+                self._prepared.add(i)
 
     def plan(self) -> list[tuple[str, list[int] | None]]:
         """Split the bands across radios: first radio takes 5 GHz, second takes 2.4 + 6 GHz."""
-        if len(self.interfaces) >= 2:
+        ifs = self.interfaces
+        if len(ifs) >= 2:
             five = [5000 + 5 * c for c in (36, 40, 44, 48, 52, 56, 60, 64, 100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144, 149, 153, 157, 161, 165)]
-            return [(self.interfaces[0], five), (self.interfaces[1], None)]
-        return [(i, None) for i in self.interfaces]
+            return [(ifs[0], five), (ifs[1], None)]
+        return [(i, None) for i in ifs]
 
     async def scan(self) -> list[dict]:
         """One survey scan: all radios in parallel, strongest reading per BSSID."""
