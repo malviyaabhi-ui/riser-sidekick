@@ -135,12 +135,16 @@ $('#btnClient').onclick = async () => { try { const d = await api('/api/network'
 $('#btnHotspot').onclick = async () => { try { await api('/api/network',{method:'POST',body:JSON.stringify({mode:'hotspot'})}); toast('Hotspot restored'); } catch(e){ toast(e.message); } };
 $('#btnRefresh').onclick = async () => { $('#pickMsg').textContent='Refreshing…'; try { const d = await api('/api/refresh',{method:'POST'}); await loadFloors(); $('#pickMsg').textContent=`${d.floors} floors loaded.`; } catch(e){ $('#pickMsg').textContent=e.message; } };
 $('#btnSync').onclick = async () => { $('#pickMsg').textContent='Syncing…'; try { const d = await api('/api/sync',{method:'POST'}); $('#pickMsg').textContent=`Sent ${d.sent} points. ${d.pending} pending.`; await refreshStatus(); } catch(e){ $('#pickMsg').textContent=e.message; } };
+// crypto.randomUUID is unavailable on plain http:// (phone on the hotspot, Mac on the LAN)
+function uuid(){ if (crypto.randomUUID) return crypto.randomUUID(); const b = crypto.getRandomValues(new Uint8Array(16)); b[6]=(b[6]&0x0f)|0x40; b[8]=(b[8]&0x3f)|0x80; const h=[...b].map(x=>x.toString(16).padStart(2,'0')).join(''); return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`; }
 $('#btnStart').onclick = async () => {
-  floor = floors.find(f=>f.id===$('#floorSel').value); if (!floor) return;
-  sessionId = crypto.randomUUID(); pending = null; img = null;
-  points = (await api(`/api/floors/${floor.id}/points`)).points || [];
-  if (floor.has_plan_image) { img = new Image(); img.onload = draw; img.src = `/api/floors/${floor.id}/plan`; }
-  show('vSurvey'); resize(); updateStats();
+  floor = floors.find(f=>f.id===$('#floorSel').value); if (!floor) { $('#pickMsg').textContent='Choose a floor first (Refresh floors if the list is empty).'; return; }
+  try {
+    sessionId = uuid(); pending = null; img = null;
+    points = (await api(`/api/floors/${floor.id}/points`)).points || [];
+    if (floor.has_plan_image) { img = new Image(); img.onload = draw; img.src = `/api/floors/${floor.id}/plan`; }
+    show('vSurvey'); resize(); updateStats();
+  } catch(e) { $('#pickMsg').textContent = 'Could not start: ' + e.message; }
 };
 $('#btnDone').onclick = async () => { show('vPick'); await refreshStatus(); if (status.online) $('#btnSync').click(); };
 $('#btnAps').onclick = () => { $('#vAps').hidden = !$('#vAps').hidden; };
